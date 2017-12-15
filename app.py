@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, request, jsonify, json, Response
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 from kubernetes.config.incluster_config import SERVICE_HOST_ENV_NAME
 
 
@@ -67,9 +68,11 @@ def deploy(namespace, deployment, container):
 
     apps = client.AppsV1beta1Api()
     patch = {"spec": {"template": {"spec": {"containers": [{"name": container, "image": image}]}}}}
-    data = apps.patch_namespaced_deployment(deployment, namespace, patch)
-
-    return Response(json.dumps(data.status, default=json_default), content_type="application/json")
+    try:
+        data = apps.patch_namespaced_deployment(deployment, namespace, patch)
+        return Response(json.dumps(data.status, default=json_default), content_type="application/json")
+    except ApiException as e:
+        return str(e), e.status
 
 
 if __name__ == '__main__':
