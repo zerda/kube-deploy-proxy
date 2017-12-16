@@ -10,8 +10,8 @@ ENV HOME /webapp
 WORKDIR /webapp
 EXPOSE 80
 
-ADD requirements.txt /webapp
+ADD src/requirements.txt /webapp
 RUN pip3 install --no-cache-dir -r requirements.txt
-ADD . /webapp
+ADD src /webapp
 
 ENTRYPOINT ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:80", "app:app"]
