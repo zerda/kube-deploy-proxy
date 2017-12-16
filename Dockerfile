@@ -1,8 +1,9 @@
-FROM alpine:3.6
+FROM alpine:3.7
 
 RUN apk add --no-cache \
-        uwsgi \
-        uwsgi-python3 \
+        py3-gunicorn \
+        py3-greenlet \
+        py3-gevent \
         python3
 
 ENV HOME /webapp
@@ -13,8 +14,4 @@ ADD requirements.txt /webapp
 RUN pip3 install --no-cache-dir -r requirements.txt
 ADD . /webapp
 
-ENTRYPOINT ["uwsgi", "--master", \
-                     "--workers", "4", \
-                     "--http-socket", "0.0.0.0:80", \
-                     "--plugins", "python3", \
-                     "--wsgi", "app:app"]
+ENTRYPOINT ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:80", "app:app"]
