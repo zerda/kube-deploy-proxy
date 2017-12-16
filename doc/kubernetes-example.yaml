@@ -1,0 +1,96 @@
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-proxy-serviceaccount
+  namespace: kube-system
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: deploy-proxy-clusterrole
+rules:
+  - apiGroups:
+      - 'apps'
+    resources:
+      - deployments
+    verbs:
+      - patch
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: deploy-proxy-clusterrole-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deploy-proxy-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: deploy-proxy-serviceaccount
+    namespace: kube-system
+...
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: deploy-proxy-auth
+  namespace: kube-system
+data:
+  # replace 'REDACTED' with random password in base64 format
+  AUTH_TOKEN: REDACTED
+...
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: deploy-proxy
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: deploy-proxy
+    spec:
+      serviceAccountName: deploy-proxy-serviceaccount
+      containers:
+        - name: flask
+          image: zerda/kubernetes-deploy:0.2.2
+          envFrom:
+            - secretRef:
+                name: deploy-proxy-auth
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /info
+              port: 80
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            periodSeconds: 10
+...
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-proxy
+  namespace: kube-system
+  labels:
+    app: deploy-proxy
+spec:
+  selector:
+    app: deploy-proxy
+  type: NodePort
+  ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 32320
+...
