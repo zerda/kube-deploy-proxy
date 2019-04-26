@@ -6,12 +6,12 @@ RUN apk add --no-cache \
         py3-gevent \
         python3
 
-ENV HOME /webapp
-WORKDIR /webapp
+ENV HOME /app
+WORKDIR /app
 EXPOSE 80
 
-ADD src/requirements.txt /webapp
+ADD src/requirements.txt /app
 RUN pip3 install --no-cache-dir -r requirements.txt
-ADD src /webapp
+ADD src /app
 
-ENTRYPOINT ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:80", "app:app"]
+ENTRYPOINT ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:80", "proxy:app"]
