@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: deploy-proxy
+  labels:
+    app.kubernetes.io/name: deploy-proxy
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+  # replace host with real domain (or remove it)
+  - host: deploy-proxy.example.com
+    http:
+      paths:
+      - path: /namespaces/
+        backend:
+          serviceName: deploy-proxy
+          servicePort: http
+  tls:
+  - secretName: example-com-tls

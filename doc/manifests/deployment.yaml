@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-proxy
+  labels:
+    app.kubernetes.io/name: deploy-proxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deploy-proxy
+  template:
+    metadata:
+      labels:
+        app: deploy-proxy
+    spec:
+      serviceAccountName: deploy-proxy
+      containers:
+        - name: flask
+          image: zerda/kube-deploy-proxy:0.3.1
+          envFrom:
+            - secretRef:
+                name: deploy-proxy-auth
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /info
+              port: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+          resources:
+            limits:
+              cpu: 200m
+              memory: 100Mi
+            requests:
+              cpu: 100m
+              memory: 50Mi
