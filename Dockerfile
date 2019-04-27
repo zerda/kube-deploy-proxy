@@ -14,4 +14,4 @@ ADD src/requirements.txt /app
 RUN pip3 install --no-cache-dir -r requirements.txt
 ADD src /app
 
-ENTRYPOINT ["gunicorn", "-w", "4", "-k", "gevent", "-b", "0.0.0.0:80", "proxy:app"]
+ENTRYPOINT ["gunicorn", "-k", "gevent", "-b", "0.0.0.0:80", "proxy:app"]
