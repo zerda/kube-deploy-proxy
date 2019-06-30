@@ -6,6 +6,8 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from kubernetes.config.incluster_config import SERVICE_HOST_ENV_NAME
 
+from auth import bearer_required
+
 
 def json_default(value):
     if isinstance(value, datetime.date):
@@ -20,6 +22,10 @@ if SERVICE_HOST_ENV_NAME in os.environ:
     config.load_incluster_config()
 else:
     config.load_kube_config()
+
+auth_token = os.environ.get('AUTH_TOKEN')
+if not auth_token:
+    raise EnvironmentError('Environment Variables `AUTH_TOKEN` is required')
 
 
 @app.route('/')
@@ -40,28 +46,12 @@ def health():
 
 
 @app.route('/namespaces/<namespace>/deployments/<deployment>/containers/<container>', methods=['PATCH'])
+@bearer_required(auth_token)
 def deploy(namespace, deployment, container):
-    auth_header = request.headers.get('Authorization')
-    if auth_header:
-        try:
-            auth_token = auth_header.split(" ")[1]
-        except IndexError:
-            response_object = {
-                'status': 'fail',
-                'message': 'Bearer token malformed.'
-            }
-            return jsonify(response_object), 401
-        if not auth_token or auth_token != os.environ.get('AUTH_TOKEN'):
-            response_object = {
-                'status': 'fail',
-                'message': 'Bearer token incorrect.'
-            }
-            return jsonify(response_object), 401
-
     image = request.args.get('image')
     if not image:
         response_object = {
-            'status': 'fail',
+            'status': 'failed',
             'message': 'image argument required.'
         }
         return jsonify(response_object), 400
@@ -70,7 +60,7 @@ def deploy(namespace, deployment, container):
     patch = {"spec": {"template": {"spec": {"containers": [{"name": container, "image": image}]}}}}
     try:
         data = apps.patch_namespaced_deployment(deployment, namespace, patch)
-        return Response(json.dumps(data.status, default=json_default), content_type="application/json")
+        return Response(json.dumps(data.status, default=json_default), mimetype='application/json')
     except ApiException as e:
         return str(e), e.status
 
