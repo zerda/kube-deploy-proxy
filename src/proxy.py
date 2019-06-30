@@ -12,6 +12,8 @@ from auth import bearer_required
 def json_default(value):
     if isinstance(value, datetime.date):
         return value.isoformat()
+    elif callable(getattr(value, 'to_dict', None)):
+        return value.to_dict()
     else:
         return value.__dict__
 
@@ -43,6 +45,17 @@ def health():
     core = client.CoreApi()
     ret = core.get_api_versions()
     return jsonify({'versions': ret.versions})
+
+
+@app.route('/namespaces/<namespace>/deployments', methods=['GET'])
+@bearer_required(auth_token)
+def list_deployments(namespace):
+    apps = client.AppsV1beta1Api()
+    try:
+        data = apps.list_namespaced_deployment(namespace)
+        return Response(json.dumps(data.items, default=json_default), mimetype='application/json')
+    except ApiException as e:
+        return str(e), e.status
 
 
 @app.route('/namespaces/<namespace>/deployments/<deployment>/containers/<container>', methods=['PATCH'])

@@ -14,6 +14,7 @@ rules:
       - deployments
     verbs:
       - patch
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
